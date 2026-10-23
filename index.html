@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Teste de preços — Fort Atacadista</title>
+<style>
+:root{color-scheme:light;--bg:#f5f7fa;--card:#fff;--text:#172033;--muted:#5b6578;--line:#dce2eb;--accent:#1769aa;--bad:#b42318;--good:#067647}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+main{max-width:980px;margin:0 auto;padding:20px 14px 48px}h1{font-size:1.55rem;line-height:1.2;margin:0 0 8px}h2{font-size:1.1rem;margin:0 0 10px}p{margin:7px 0 12px}.muted{color:var(--muted);font-size:.92rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin:14px 0;box-shadow:0 2px 8px #17203308}
+label{display:block;font-weight:650;margin:12px 0 5px}input,textarea,button{font:inherit}input,textarea{width:100%;padding:11px 12px;border:1px solid #b9c4d3;border-radius:9px;background:white;color:var(--text)}textarea{min-height:140px;font:13px/1.45 ui-monospace,SFMono-Regular,Consolas,monospace;resize:vertical}
+button{border:0;border-radius:9px;padding:11px 14px;background:var(--accent);color:white;font-weight:650;cursor:pointer;margin:10px 8px 0 0}button.secondary{background:#e8eef5;color:#18334b}button:disabled{opacity:.55;cursor:wait}
+.status{padding:10px 12px;border-radius:8px;background:#eef2f7;margin-top:12px;white-space:pre-wrap;overflow-wrap:anywhere}.status.good{background:#e8f7ef;color:var(--good)}.status.bad{background:#fff0ef;color:var(--bad)}
+pre{background:#111827;color:#e5edf7;padding:13px;border-radius:9px;overflow:auto;max-height:440px;font:12px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace;white-space:pre-wrap;overflow-wrap:anywhere}
+details{margin-top:10px}summary{cursor:pointer;font-weight:650}.tag{display:inline-block;background:#e9eef6;border-radius:6px;padding:2px 7px;font-size:.8rem}
+@media(min-width:720px){.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.card{padding:20px}}
+</style>
+</head>
+<body>
+<main>
+  <h1>Teste de consulta — Fort Atacadista</h1>
+  <p class="muted">Ferramenta de diagnóstico do endpoint GraphQL. Primeiro testa o acesso e tenta descobrir o esquema; depois permite executar uma consulta real capturada no site.</p>
+  <div class="card">
+    <h2>1. Testar conexão e descobrir o esquema</h2>
+    <p>O teste envia uma consulta GraphQL de introspecção. Se a introspecção estiver bloqueada, isso não significa necessariamente que a API esteja indisponível.</p>
+    <button id="testBtn" type="button">Testar endpoint GraphQL</button>
+    <div id="testStatus" class="status" role="status">Aguardando teste.</div>
+    <details>
+      <summary>Resposta do teste</summary>
+      <pre id="testOutput">Nenhuma resposta ainda.</pre>
+    </details>
+  </div>
+
+  <div class="card">
+    <h2>2. Consultar um produto</h2>
+    <p>Para pesquisar um produto, precisamos da consulta que o próprio site utiliza. Copie o campo <span class="tag">query</span> da requisição GraphQL no DevTools e cole abaixo. Não cole cookies, tokens ou credenciais.</p>
+    <label for="product">Produto a pesquisar</label>
+    <input id="product" value="arroz" placeholder="Ex.: arroz, leite, açúcar">
+    <label for="query">Consulta GraphQL (query)</label>
+    <textarea id="query" spellcheck="false" placeholder="Cole aqui o campo query da requisição capturada no site do Fort."></textarea>
+    <label for="variables">Variáveis JSON</label>
+    <textarea id="variables" spellcheck="false">{"term":"__PRODUTO__"}</textarea>
+    <p class="muted">No JSON de variáveis, use o texto <code>"__PRODUTO__"</code> no lugar do termo de busca. O app substituirá esse marcador pelo produto informado acima. Ajuste o nome da variável conforme a consulta capturada.</p>
+    <button id="runBtn" type="button">Executar consulta</button>
+    <button id="exampleBtn" class="secondary" type="button">Carregar teste mínimo</button>
+    <div id="runStatus" class="status" role="status">Aguardando consulta.</div>
+    <details open>
+      <summary>Resposta da consulta</summary>
+      <pre id="runOutput">Nenhuma resposta ainda.</pre>
+    </details>
+  </div>
+
+  <div class="card">
+    <h2>Como capturar a consulta real</h2>
+    <ol>
+      <li>Abra o site do Fort Atacadista e selecione a cidade/loja, se solicitado.</li>
+      <li>Abra as ferramentas de desenvolvedor do navegador e entre em <b>Network → Fetch/XHR</b>.</li>
+      <li>Pesquise “arroz” no site e clique na requisição para <code>api.fortatacadista.com.br/storefront/graphql</code>.</li>
+      <li>Em <b>Payload</b>, copie o campo <code>query</code> e as <code>variables</code>. Cole-os nos campos acima.</li>
+      <li>Substitua o valor da variável que contém o termo de busca por <code>__PRODUTO__</code>. Se o site usar outro campo, adapte o JSON de variáveis.</li>
+      <li>Execute a consulta. Confira na resposta se aparecem produto, SKU e preço.</li>
+    </ol>
+    <p class="muted">A consulta é encaminhada pelo Worker ao endpoint do Fort. O app não inventa nomes de campos nem presume que exista uma consulta genérica de produtos.</p>
+  </div>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+async function callWorker(payload) {
+  const response = await fetch("/api/graphql", {
+    method: "POST",
+    headers: {"Content-Type":"application/json", "Accept":"application/json"},
+    body: JSON.stringify(payload)
+  });
+  const text = await response.text();
+  let data;
+  try { data = JSON.parse(text); } catch { data = {raw: text}; }
+  return {httpStatus: response.status, data};
+}
+function showStatus(id, message, kind="") {
+  const el = $(id); el.className = "status" + (kind ? " " + kind : ""); el.textContent = message;
+}
+function pretty(value) { return JSON.stringify(value, null, 2); }
+$("testBtn").addEventListener("click", async () => {
+  const btn = $("testBtn"); btn.disabled = true;
+  showStatus("testStatus", "Consultando endpoint e tentando ler o esquema...");
+  $("testOutput").textContent = "Aguardando resposta...";
+  try {
+    const result = await callWorker({mode:"introspect"});
+    $("testOutput").textContent = pretty(result.data);
+    const ok = result.data && result.data.upstreamStatus >= 200 && result.data.upstreamStatus < 300 && !result.data.graphqlErrors;
+    showStatus("testStatus",
+      `HTTP do Worker: ${result.httpStatus}; HTTP do endpoint Fort: ${result.data.upstreamStatus ?? "não informado"}.\n` +
+      (result.data.message || (ok ? "Resposta recebida. Examine o esquema abaixo." : "A resposta indica uma falha; examine os detalhes.")),
+      ok ? "good" : "bad");
+  } catch (e) {
+    showStatus("testStatus", "Falha ao chamar o Worker: " + e.message + "\nVerifique se o app está publicado junto com a rota /api/graphql.", "bad");
+  } finally { btn.disabled = false; }
+});
+$("exampleBtn").addEventListener("click", () => {
+  $("query").value = "query { __typename }";
+  $("variables").value = "{}";
+  showStatus("runStatus", "Consulta mínima carregada. Ela testa GraphQL, mas não pesquisa produtos nem preços.");
+});
+$("runBtn").addEventListener("click", async () => {
+  const btn = $("runBtn"); btn.disabled = true;
+  $("runOutput").textContent = "Aguardando resposta...";
+  try {
+    const query = $("query").value.trim();
+    if (!query) throw new Error("Cole a consulta GraphQL capturada no site ou carregue o teste mínimo.");
+    let variables = JSON.parse($("variables").value || "{}");
+    const product = $("product").value.trim();
+    const replaceMarker = (value) => {
+      if (value === "__PRODUTO__") return product;
+      if (Array.isArray(value)) return value.map(replaceMarker);
+      if (value && typeof value === "object") {
+        const out = {};
+        for (const [k,v] of Object.entries(value)) out[k] = replaceMarker(v);
+        return out;
+      }
+      return value;
+    };
+    variables = replaceMarker(variables);
+    const result = await callWorker({query, variables});
+    $("runOutput").textContent = pretty(result.data);
+    const d = result.data || {};
+    const ok = result.httpStatus === 200 && d.upstreamStatus >= 200 && d.upstreamStatus < 300 && !d.graphqlErrors;
+    showStatus("runStatus",
+      `HTTP do Worker: ${result.httpStatus}; HTTP do endpoint Fort: ${d.upstreamStatus ?? "não informado"}.\n` +
+      (d.message || (ok ? "Consulta executada. Verifique se a resposta contém o produto e o preço esperado." : "A consulta falhou; examine os detalhes retornados.")),
+      ok ? "good" : "bad");
+  } catch (e) {
+    showStatus("runStatus", "Não foi possível executar a consulta: " + e.message, "bad");
+  } finally { btn.disabled = false; }
+});
+</script>
+</body>
+</html>
