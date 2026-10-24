@@ -1,138 +1,597 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Teste de preços — Fort Atacadista</title>
-<style>
-:root{color-scheme:light;--bg:#f5f7fa;--card:#fff;--text:#172033;--muted:#5b6578;--line:#dce2eb;--accent:#1769aa;--bad:#b42318;--good:#067647}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-main{max-width:980px;margin:0 auto;padding:20px 14px 48px}h1{font-size:1.55rem;line-height:1.2;margin:0 0 8px}h2{font-size:1.1rem;margin:0 0 10px}p{margin:7px 0 12px}.muted{color:var(--muted);font-size:.92rem}
-.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin:14px 0;box-shadow:0 2px 8px #17203308}
-label{display:block;font-weight:650;margin:12px 0 5px}input,textarea,button{font:inherit}input,textarea{width:100%;padding:11px 12px;border:1px solid #b9c4d3;border-radius:9px;background:white;color:var(--text)}textarea{min-height:140px;font:13px/1.45 ui-monospace,SFMono-Regular,Consolas,monospace;resize:vertical}
-button{border:0;border-radius:9px;padding:11px 14px;background:var(--accent);color:white;font-weight:650;cursor:pointer;margin:10px 8px 0 0}button.secondary{background:#e8eef5;color:#18334b}button:disabled{opacity:.55;cursor:wait}
-.status{padding:10px 12px;border-radius:8px;background:#eef2f7;margin-top:12px;white-space:pre-wrap;overflow-wrap:anywhere}.status.good{background:#e8f7ef;color:var(--good)}.status.bad{background:#fff0ef;color:var(--bad)}
-pre{background:#111827;color:#e5edf7;padding:13px;border-radius:9px;overflow:auto;max-height:440px;font:12px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace;white-space:pre-wrap;overflow-wrap:anywhere}
-details{margin-top:10px}summary{cursor:pointer;font-weight:650}.tag{display:inline-block;background:#e9eef6;border-radius:6px;padding:2px 7px;font-size:.8rem}
-@media(min-width:720px){.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.card{padding:20px}}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Buscador Multimercado Paralelo & Benchmark</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    .glass {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+    }
+  </style>
 </head>
-<body>
-<main>
-  <h1>Teste de consulta — Fort Atacadista</h1>
-  <p class="muted">Ferramenta de diagnóstico do endpoint GraphQL. Primeiro testa o acesso e tenta descobrir o esquema; depois permite executar uma consulta real capturada no site.</p>
-  <div class="card">
-    <h2>1. Testar conexão e descobrir o esquema</h2>
-    <p>O teste envia uma consulta GraphQL de introspecção. Se a introspecção estiver bloqueada, isso não significa necessariamente que a API esteja indisponível.</p>
-    <button id="testBtn" type="button">Testar endpoint GraphQL</button>
-    <div id="testStatus" class="status" role="status">Aguardando teste.</div>
-    <details>
-      <summary>Resposta do teste</summary>
-      <pre id="testOutput">Nenhuma resposta ainda.</pre>
-    </details>
+<body class="bg-slate-100 text-slate-800 min-h-screen py-8 px-4 font-sans">
+  <div class="max-w-5xl mx-auto space-y-6">
+    
+    <!-- Cabeçalho -->
+    <header class="bg-gradient-to-r from-blue-700 to-indigo-800 text-white p-6 rounded-2xl shadow-xl">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-2xl font-bold flex items-center gap-2">
+            <i class="fa-solid fa-bolt text-yellow-400"></i> Buscador Multimercado em Paralelo
+          </h1>
+          <p class="text-blue-100 text-sm mt-1">Pesquisa simultânea em múltiplos e-commerces com teste de tempo (Benchmark)</p>
+        </div>
+        <span class="bg-blue-600/50 text-xs px-3 py-1.5 rounded-full border border-blue-400/30">v17.0 Multi-Market Parallel</span>
+      </div>
+    </header>
+
+    <!-- Configuração do Cloudflare Worker Proxy -->
+    <div class="glass p-5 rounded-2xl shadow-md border border-slate-200">
+      <h2 class="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+        <i class="fa-solid fa-server text-indigo-600"></i> Cloudflare Worker Proxy
+      </h2>
+      <div class="flex gap-2">
+        <input type="url" id="proxyUrl" placeholder="https://seu-worker.seu-subdominio.workers.dev" 
+               class="flex-1 px-4 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+        <button id="saveProxyBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+          Salvar
+        </button>
+      </div>
+    </div>
+
+    <!-- Painel de Gerenciamento de Múltiplos Mercados -->
+    <div class="glass p-5 rounded-2xl shadow-md border border-slate-200 space-y-3">
+      <div class="flex items-center justify-between">
+        <h2 class="text-sm font-semibold text-slate-700 flex items-center gap-2">
+          <i class="fa-solid fa-store text-emerald-600"></i> Lista de Mercados / Sitemaps para Busca Paralela
+        </h2>
+        <button id="addMarketBtn" class="text-xs bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold px-3 py-1.5 rounded-lg border border-emerald-300 transition flex items-center gap-1">
+          <i class="fa-solid fa-plus"></i> Adicionar Mercado
+        </button>
+      </div>
+
+      <div id="marketsListContainer" class="space-y-2">
+        <!-- Itens inseridos dinamicamente via JS -->
+      </div>
+      <p id="sitemapStatusText" class="text-xs text-slate-500">Adicione os sitemaps dos mercados desejados para a pesquisa comparativa.</p>
+    </div>
+
+    <!-- Formulário Principal Estruturado -->
+    <div class="glass p-6 rounded-2xl shadow-md border border-slate-200 space-y-4">
+      <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wide">Filtros de Busca (Atributos Ponderados)</h2>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Produto (Peso 40%) -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
+            <span>1. Produto</span>
+            <span class="text-[10px] text-emerald-600 font-semibold">Peso: 40% (Obrigatório)</span>
+          </label>
+          <input type="text" id="inputProduct" placeholder="Ex: café, cappuccino..." value="café"
+                 class="w-full px-4 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+        </div>
+
+        <!-- Marca (Peso 25%) -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
+            <span>2. Marca (Aceita alternativas)</span>
+            <span class="text-[10px] text-slate-500">Peso: 25%</span>
+          </label>
+          <input type="text" id="inputBrand" placeholder="Ex: 3 corações, 3 coracoes, melitta..." value="3 corações"
+                 class="w-full px-4 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+        </div>
+
+        <!-- Tipo (Peso 20%) -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
+            <span>3. Tipo / Variedade (Aceita alternativas)</span>
+            <span class="text-[10px] text-slate-500">Peso: 20%</span>
+          </label>
+          <input type="text" id="inputType" placeholder="Ex: sul de minas, gourmet, tradicional..." value="sul de minas"
+                 class="w-full px-4 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+        </div>
+
+        <!-- Quantidade (Peso 15%) -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
+            <span>4. Quantidade / Embalagem</span>
+            <span class="text-[10px] text-slate-500">Peso: 15%</span>
+          </label>
+          <input type="text" id="inputQuantity" placeholder="Ex: 250g, 500g..." value="250g"
+                 class="w-full px-4 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+        </div>
+      </div>
+
+      <button id="processBtn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3.5 px-6 rounded-xl shadow-lg transition flex items-center justify-center gap-2 mt-2">
+        <i class="fa-solid fa-bolt"></i> Buscar em Todos os Mercados em Paralelo & Testar Tempo
+      </button>
+    </div>
+
+    <!-- Indicador de Carregamento -->
+    <div id="loader" class="hidden glass p-6 rounded-2xl shadow-md text-center space-y-3">
+      <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-emerald-600 border-t-transparent"></div>
+      <p id="loaderText" class="text-sm font-medium text-slate-700">Disparando buscas simultâneas nos e-commerces...</p>
+    </div>
+
+    <!-- Resultado Comparativo de Desempenho e Preços -->
+    <div id="resultBox" class="hidden glass p-6 rounded-2xl shadow-lg border border-slate-200 space-y-5">
+      
+      <!-- Metric Banner do Benchmark -->
+      <div class="bg-slate-900 text-white p-4 rounded-xl shadow flex flex-wrap justify-between items-center text-sm gap-2">
+        <div class="flex items-center gap-3">
+          <i class="fa-solid fa-stopwatch text-yellow-400 text-xl"></i>
+          <div>
+            <div class="text-xs text-slate-400">Tempo Total da Busca Paralela:</div>
+            <div id="totalBenchmarkTime" class="text-lg font-bold text-yellow-400">0.00 segundos</div>
+          </div>
+        </div>
+        <div class="text-right">
+          <div class="text-xs text-slate-400">Mercados Pesquisados:</div>
+          <div id="totalMarketsCount" class="text-sm font-bold text-white">0 Mercados em Simultâneo</div>
+        </div>
+      </div>
+
+      <!-- Tabela Comparativa de Preços por Mercado -->
+      <div>
+        <h3 class="font-bold text-slate-800 text-sm uppercase tracking-wide mb-3 flex items-center gap-2">
+          <i class="fa-solid fa-trophy text-amber-500"></i> Comparativo de Menores Preços por Mercado
+        </h3>
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs text-left border-collapse">
+            <thead>
+              <tr class="bg-slate-200 text-slate-700 font-bold border-b">
+                <th class="p-3">Mercado</th>
+                <th class="p-3">Melhor Produto Encontrado</th>
+                <th class="p-3 text-center">Match %</th>
+                <th class="p-3 text-right">Menor Preço</th>
+                <th class="p-3 text-center">Tempo individual</th>
+              </tr>
+            </thead>
+            <tbody id="marketResultsTableBody" class="divide-y divide-slate-200">
+              <!-- Preenchido via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Logs de Processamento -->
+      <div class="pt-2">
+        <details class="text-xs text-slate-500">
+          <summary class="cursor-pointer font-semibold hover:text-slate-700">Ver Logs de Processamento Detalhados</summary>
+          <pre id="logOutput" class="mt-2 p-3 bg-slate-900 text-emerald-400 rounded-lg overflow-x-auto text-[11px] leading-relaxed"></pre>
+        </details>
+      </div>
+    </div>
+
   </div>
 
-  <div class="card">
-    <h2>2. Consultar um produto</h2>
-    <p>Para pesquisar um produto, precisamos da consulta que o próprio site utiliza. Copie o campo <span class="tag">query</span> da requisição GraphQL no DevTools e cole abaixo. Não cole cookies, tokens ou credenciais.</p>
-    <label for="product">Produto a pesquisar</label>
-    <input id="product" value="arroz" placeholder="Ex.: arroz, leite, açúcar">
-    <label for="query">Consulta GraphQL (query)</label>
-    <textarea id="query" spellcheck="false" placeholder="Cole aqui o campo query da requisição capturada no site do Fort."></textarea>
-    <label for="variables">Variáveis JSON</label>
-    <textarea id="variables" spellcheck="false">{"term":"__PRODUTO__"}</textarea>
-    <p class="muted">No JSON de variáveis, use o texto <code>"__PRODUTO__"</code> no lugar do termo de busca. O app substituirá esse marcador pelo produto informado acima. Ajuste o nome da variável conforme a consulta capturada.</p>
-    <button id="runBtn" type="button">Executar consulta</button>
-    <button id="exampleBtn" class="secondary" type="button">Carregar teste mínimo</button>
-    <div id="runStatus" class="status" role="status">Aguardando consulta.</div>
-    <details open>
-      <summary>Resposta da consulta</summary>
-      <pre id="runOutput">Nenhuma resposta ainda.</pre>
-    </details>
-  </div>
+  <script>
+    const proxyInput = document.getElementById('proxyUrl');
+    const saveProxyBtn = document.getElementById('saveProxyBtn');
+    const addMarketBtn = document.getElementById('addMarketBtn');
+    const marketsListContainer = document.getElementById('marketsListContainer');
+    
+    const inputProduct = document.getElementById('inputProduct');
+    const inputBrand = document.getElementById('inputBrand');
+    const inputType = document.getElementById('inputType');
+    const inputQuantity = document.getElementById('inputQuantity');
+    
+    const processBtn = document.getElementById('processBtn');
+    const loader = document.getElementById('loader');
+    const loaderText = document.getElementById('loaderText');
+    const resultBox = document.getElementById('resultBox');
+    const totalBenchmarkTime = document.getElementById('totalBenchmarkTime');
+    const totalMarketsCount = document.getElementById('totalMarketsCount');
+    const marketResultsTableBody = document.getElementById('marketResultsTableBody');
+    const logOutput = document.getElementById('logOutput');
 
-  <div class="card">
-    <h2>Como capturar a consulta real</h2>
-    <ol>
-      <li>Abra o site do Fort Atacadista e selecione a cidade/loja, se solicitado.</li>
-      <li>Abra as ferramentas de desenvolvedor do navegador e entre em <b>Network → Fetch/XHR</b>.</li>
-      <li>Pesquise “arroz” no site e clique na requisição para <code>api.fortatacadista.com.br/storefront/graphql</code>.</li>
-      <li>Em <b>Payload</b>, copie o campo <code>query</code> e as <code>variables</code>. Cole-os nos campos acima.</li>
-      <li>Substitua o valor da variável que contém o termo de busca por <code>__PRODUTO__</code>. Se o site usar outro campo, adapte o JSON de variáveis.</li>
-      <li>Execute a consulta. Confira na resposta se aparecem produto, SKU e preço.</li>
-    </ol>
-    <p class="muted">A consulta é encaminhada pelo Worker ao endpoint do Fort. O app não inventa nomes de campos nem presume que exista uma consulta genérica de produtos.</p>
-  </div>
-</main>
-<script>
-const $ = (id) => document.getElementById(id);
-async function callWorker(payload) {
-  const response = await fetch("/api/graphql", {
-    method: "POST",
-    headers: {"Content-Type":"application/json", "Accept":"application/json"},
-    body: JSON.stringify(payload)
-  });
-  const text = await response.text();
-  let data;
-  try { data = JSON.parse(text); } catch { data = {raw: text}; }
-  return {httpStatus: response.status, data};
-}
-function showStatus(id, message, kind="") {
-  const el = $(id); el.className = "status" + (kind ? " " + kind : ""); el.textContent = message;
-}
-function pretty(value) { return JSON.stringify(value, null, 2); }
-$("testBtn").addEventListener("click", async () => {
-  const btn = $("testBtn"); btn.disabled = true;
-  showStatus("testStatus", "Consultando endpoint e tentando ler o esquema...");
-  $("testOutput").textContent = "Aguardando resposta...";
-  try {
-    const result = await callWorker({mode:"introspect"});
-    $("testOutput").textContent = pretty(result.data);
-    const ok = result.data && result.data.upstreamStatus >= 200 && result.data.upstreamStatus < 300 && !result.data.graphqlErrors;
-    showStatus("testStatus",
-      `HTTP do Worker: ${result.httpStatus}; HTTP do endpoint Fort: ${result.data.upstreamStatus ?? "não informado"}.\n` +
-      (result.data.message || (ok ? "Resposta recebida. Examine o esquema abaixo." : "A resposta indica uma falha; examine os detalhes.")),
-      ok ? "good" : "bad");
-  } catch (e) {
-    showStatus("testStatus", "Falha ao chamar o Worker: " + e.message + "\nVerifique se o app está publicado junto com a rota /api/graphql.", "bad");
-  } finally { btn.disabled = false; }
-});
-$("exampleBtn").addEventListener("click", () => {
-  $("query").value = "query { __typename }";
-  $("variables").value = "{}";
-  showStatus("runStatus", "Consulta mínima carregada. Ela testa GraphQL, mas não pesquisa produtos nem preços.");
-});
-$("runBtn").addEventListener("click", async () => {
-  const btn = $("runBtn"); btn.disabled = true;
-  $("runOutput").textContent = "Aguardando resposta...";
-  try {
-    const query = $("query").value.trim();
-    if (!query) throw new Error("Cole a consulta GraphQL capturada no site ou carregue o teste mínimo.");
-    let variables = JSON.parse($("variables").value || "{}");
-    const product = $("product").value.trim();
-    const replaceMarker = (value) => {
-      if (value === "__PRODUTO__") return product;
-      if (Array.isArray(value)) return value.map(replaceMarker);
-      if (value && typeof value === "object") {
-        const out = {};
-        for (const [k,v] of Object.entries(value)) out[k] = replaceMarker(v);
-        return out;
+    // Lista Padrão de Mercados Pré-configurados
+    let marketsConfig = [
+      { id: 'm1', name: 'Giassi', url: 'https://www.giassi.com.br/sitemap.xml', active: true, indexed: [] },
+      { id: 'm2', name: 'Fort Atacadista', url: 'https://www.fortatacadista.com.br/sitemap.xml', active: true, indexed: [] },
+      { id: 'm3', name: 'Condor', url: 'https://www.condor.com.br/sitemap.xml', active: true, indexed: [] }
+    ];
+
+    const priceCache = new Map();
+    const STOPWORDS = new Set(['de', 'da', 'do', 'das', 'dos', 'em', 'com', 'para', 'a', 'o', 'as', 'os', 'e', 'um', 'uma']);
+
+    const savedProxy = localStorage.getItem('cf_worker_proxy') || '';
+    proxyInput.value = savedProxy;
+
+    saveProxyBtn.addEventListener('click', () => {
+      const url = proxyInput.value.trim().replace(/\/$/, '');
+      localStorage.setItem('cf_worker_proxy', url);
+      alert('URL do Worker salva com sucesso!');
+    });
+
+    // RENDERIZA A LISTA DE MERCADOS
+    function renderMarketsList() {
+      marketsListContainer.innerHTML = '';
+      marketsConfig.forEach((m, idx) => {
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'flex items-center gap-2 bg-white p-2.5 rounded-xl border border-slate-200';
+        itemDiv.innerHTML = `
+          <input type="checkbox" ${m.active ? 'checked' : ''} onchange="toggleMarketActive(${idx})" class="w-4 h-4 text-emerald-600 rounded cursor-pointer">
+          <input type="text" value="${escapeHTML(m.name)}" onchange="updateMarketName(${idx}, this.value)" placeholder="Nome do Mercado" class="w-1/3 px-2 py-1 text-xs font-bold border rounded outline-none">
+          <input type="url" value="${escapeHTML(m.url)}" onchange="updateMarketUrl(${idx}, this.value)" placeholder="https://.../sitemap.xml" class="flex-1 px-2 py-1 text-xs border rounded outline-none font-mono">
+          <span class="text-[10px] font-bold px-2 py-1 rounded bg-slate-100 text-slate-600">${m.indexed.length ? m.indexed.length + ' urls' : 'Não indexado'}</span>
+          <button onclick="removeMarket(${idx})" class="text-slate-400 hover:text-red-500 p-1"><i class="fa-solid fa-trash"></i></button>
+        `;
+        marketsListContainer.appendChild(itemDiv);
+      });
+    }
+
+    function toggleMarketActive(idx) { marketsConfig[idx].active = !marketsConfig[idx].active; }
+    function updateMarketName(idx, val) { marketsConfig[idx].name = val; }
+    function updateMarketUrl(idx, val) { marketsConfig[idx].url = val; marketsConfig[idx].indexed = []; }
+    function removeMarket(idx) { marketsConfig.splice(idx, 1); renderMarketsList(); }
+
+    addMarketBtn.addEventListener('click', () => {
+      marketsConfig.push({ id: 'm_' + Date.now(), name: 'Novo Mercado', url: '', active: true, indexed: [] });
+      renderMarketsList();
+    });
+
+    renderMarketsList();
+
+    function isProductUrl(url) {
+      if (!url) return false;
+      const lower = url.toLowerCase();
+      if (lower.endsWith('/p') || lower.includes('/p?') || /\/p$/i.test(lower)) return true;
+      if (/_\d+\/p/i.test(lower)) return true;
+      if (lower.includes('/produto/') || lower.includes('/p-')) return true;
+      
+      const pathSegments = new URL(url).pathname.split('/').filter(Boolean);
+      if (pathSegments.length <= 2 && !lower.includes('_') && !lower.includes('-')) return false;
+
+      return false;
+    }
+
+    function normalize(text) {
+      if (!text) return '';
+      return text
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9\s-]/g, '')
+        .trim();
+    }
+
+    function extractSlugFromUrl(url) {
+      try {
+        const parsedUrl = new URL(url);
+        const pathSegments = parsedUrl.pathname.split('/').filter(Boolean);
+        if (pathSegments.length > 0 && pathSegments[pathSegments.length - 1].toLowerCase() === 'p') {
+          pathSegments.pop();
+        }
+        const lastSegment = pathSegments.pop() || '';
+        return normalize(lastSegment);
+      } catch (e) {
+        return '';
       }
-      return value;
-    };
-    variables = replaceMarker(variables);
-    const result = await callWorker({query, variables});
-    $("runOutput").textContent = pretty(result.data);
-    const d = result.data || {};
-    const ok = result.httpStatus === 200 && d.upstreamStatus >= 200 && d.upstreamStatus < 300 && !d.graphqlErrors;
-    showStatus("runStatus",
-      `HTTP do Worker: ${result.httpStatus}; HTTP do endpoint Fort: ${d.upstreamStatus ?? "não informado"}.\n` +
-      (d.message || (ok ? "Consulta executada. Verifique se a resposta contém o produto e o preço esperado." : "A consulta falhou; examine os detalhes retornados.")),
-      ok ? "good" : "bad");
-  } catch (e) {
-    showStatus("runStatus", "Não foi possível executar a consulta: " + e.message, "bad");
-  } finally { btn.disabled = false; }
-});
-</script>
+    }
+
+    // CARREGA E INDEXA UM SITEMAP DE UM MERCADO ESPECÍFICO
+    async function loadAndIndexMarket(market, workerUrl) {
+      if (market.indexed && market.indexed.length > 0) return market;
+
+      try {
+        const endpoint = `${workerUrl}/api/sitemap?sitemapUrl=${encodeURIComponent(market.url)}`;
+        const response = await fetch(endpoint);
+        const data = await response.json();
+
+        if (data.status === 'success' && Array.isArray(data.urls)) {
+          const rawUrls = data.urls;
+          const filteredUrls = rawUrls.filter(isProductUrl);
+          const finalUrls = filteredUrls.length > 0 ? filteredUrls : rawUrls;
+
+          market.indexed = finalUrls.map(url => {
+            const slug = extractSlugFromUrl(url);
+            return {
+              url,
+              slug,
+              slugClean: slug.replace(/_/g, '-'),
+              slugNoHyphen: slug.replace(/_/g, '-').replace(/-/g, '')
+            };
+          });
+        }
+      } catch (err) {
+        console.error(`Erro ao carregar sitemap do mercado ${market.name}:`, err);
+      }
+      return market;
+    }
+
+    function evaluateSingleOption(singleText, pObj, isType = false) {
+      const normText = normalize(singleText);
+      if (!normText) return 0;
+
+      const textNoSpaces = normText.replace(/\s+/g, '');
+      if (pObj.slugClean.includes(normText.replace(/\s+/g, '-')) || pObj.slugNoHyphen.includes(textNoSpaces)) {
+        return 1.0;
+      }
+
+      if (isType) {
+        const hyphenated = normText.replace(/\s+/g, '-');
+        if (pObj.slugClean.includes(hyphenated)) return 1.0;
+
+        const typeTokens = normText.split(/\s+/).filter(w => !STOPWORDS.has(w));
+        if (typeTokens.length > 0) {
+          let matched = 0;
+          typeTokens.forEach(token => {
+            if (pObj.slugClean.includes(token) || pObj.slugNoHyphen.includes(token)) matched++;
+          });
+          return (matched / typeTokens.length) * 0.7;
+        }
+      }
+
+      const tokens = normText.split(/\s+/).filter(w => !STOPWORDS.has(w));
+      if (tokens.length === 0) return 0;
+
+      let matched = 0;
+      tokens.forEach(token => {
+        if (pObj.slugClean.includes(token) || pObj.slugNoHyphen.includes(token)) {
+          matched++;
+        }
+      });
+
+      return matched / tokens.length;
+    }
+
+    function evaluateAttributeScore(fieldValue, pObj, isType = false) {
+      if (!fieldValue) return null;
+      const options = fieldValue.split(',').map(opt => opt.trim()).filter(Boolean);
+      if (options.length === 0) return null;
+
+      let maxOptionScore = 0;
+      for (let i = 0; i < options.length; i++) {
+        const score = evaluateSingleOption(options[i], pObj, isType);
+        if (score > maxOptionScore) maxOptionScore = score;
+        if (maxOptionScore === 1.0) break;
+      }
+      return maxOptionScore;
+    }
+
+    function calculateTotalMatchPercentage(product, brand, type, quantity, pObj) {
+      const WEIGHTS = { product: 0.40, brand: 0.25, type: 0.20, quantity: 0.15 };
+
+      const productScore = evaluateAttributeScore(product, pObj);
+      if (product && (productScore === null || productScore === 0)) {
+        return 0;
+      }
+
+      const brandScore = evaluateAttributeScore(brand, pObj);
+      const typeScore = evaluateAttributeScore(type, pObj, true);
+      const quantityScore = evaluateAttributeScore(quantity, pObj);
+
+      let totalWeight = 0;
+      let weightedSum = 0;
+
+      if (productScore !== null) { weightedSum += productScore * WEIGHTS.product; totalWeight += WEIGHTS.product; }
+      if (brandScore !== null) { weightedSum += brandScore * WEIGHTS.brand; totalWeight += WEIGHTS.brand; }
+      if (typeScore !== null) { weightedSum += typeScore * WEIGHTS.type; totalWeight += WEIGHTS.type; }
+      if (quantityScore !== null) { weightedSum += quantityScore * WEIGHTS.quantity; totalWeight += WEIGHTS.quantity; }
+
+      if (totalWeight === 0) return 0;
+      return Math.round(((weightedSum / totalWeight) * 100) * 10) / 10;
+    }
+
+    function findTopCandidatesForMarket(market, product, brand, type, quantity, topN = 5) {
+      const candidates = [];
+      const prodNorm = normalize(product).split(',')[0].trim();
+      const firstWordProd = prodNorm.split(/\s+/)[0];
+
+      for (let i = 0; i < market.indexed.length; i++) {
+        const pObj = market.indexed[i];
+        
+        if (firstWordProd && !pObj.slugNoHyphen.includes(firstWordProd)) {
+          continue;
+        }
+
+        const matchPercent = calculateTotalMatchPercentage(product, brand, type, quantity, pObj);
+        if (matchPercent > 0) {
+          candidates.push({ url: pObj.url, matchPercent });
+        }
+      }
+
+      candidates.sort((a, b) => b.matchPercent - a.matchPercent);
+      return candidates.slice(0, topN);
+    }
+
+    function extractUniversalPrice(htmlString) {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(htmlString, 'text/html');
+      let candidates = [];
+
+      doc.querySelectorAll('script').forEach(script => {
+        const content = script.textContent || '';
+        if (content.includes('__STATE__') || content.includes('APOLLO_STATE') || content.includes('INITIAL_STATE')) {
+          const priceRegex = /"(?:Price|spotPrice|lowPrice|highPrice|price)"\s*:\s*(\d+(?:\.\d+)?)/gi;
+          let match;
+          while ((match = priceRegex.exec(content)) !== null) {
+            const val = parseFloat(match[1]);
+            if (val > 0.1 && val < 2000) candidates.push({ val, source: 'VTEX State JSON' });
+          }
+        }
+      });
+
+      doc.querySelectorAll('script[type="application/ld+json"]').forEach(script => {
+        try {
+          const json = JSON.parse(script.textContent);
+          const items = Array.isArray(json) ? json : [json];
+          items.forEach(item => {
+            let offers = item.offers || (item['@graph'] ? item['@graph'].find(o => o.offers || o['@type'] === 'Offer')?.offers : null);
+            if (offers) {
+              if (offers.offers && Array.isArray(offers.offers)) offers = offers.offers;
+              const offerList = Array.isArray(offers) ? offers : [offers];
+              offerList.forEach(off => {
+                const priceVal = off?.price ?? off?.lowPrice ?? off?.spotPrice;
+                if (priceVal !== undefined && priceVal !== null) {
+                  let p = parseFloat(String(priceVal).replace(',', '.'));
+                  if (p > 2000 && p < 100000) p = p / 100;
+                  if (p > 0.1 && p < 2000) candidates.push({ val: p, source: 'JSON-LD Schema' });
+                }
+              });
+            }
+          });
+        } catch (e) {}
+      });
+
+      const validCandidates = candidates.filter(c => c.val > 0.1 && c.val < 2000);
+      if (validCandidates.length > 0) {
+        validCandidates.sort((a, b) => a.val - b.val);
+        return validCandidates[0];
+      }
+      return null;
+    }
+
+    async function fetchCandidatePrice(item, workerUrl) {
+      if (priceCache.has(item.url)) {
+        return { ...item, ...priceCache.get(item.url) };
+      }
+
+      try {
+        const fetchTarget = `${workerUrl}/?url=${encodeURIComponent(item.url)}`;
+        const response = await fetch(fetchTarget);
+        if (response.ok) {
+          const html = await response.text();
+          const priceData = extractUniversalPrice(html);
+          if (priceData) {
+            const resData = { price: priceData.val, source: priceData.source };
+            priceCache.set(item.url, resData);
+            return { ...item, ...resData };
+          }
+        }
+      } catch (e) {}
+      return null;
+    }
+
+    // PROCESSAMENTO PARALELO DE UM ÚNICO MERCADO
+    async function processSingleMarket(market, product, brand, type, quantity, workerUrl) {
+      const mStart = performance.now();
+      await loadAndIndexMarket(market, workerUrl);
+      
+      const candidates = findTopCandidatesForMarket(market, product, brand, type, quantity, 5);
+      
+      if (candidates.length === 0) {
+        return {
+          marketName: market.name,
+          durationMs: performance.now() - mStart,
+          winner: null,
+          error: 'Nenhum produto correspondente no sitemap'
+        };
+      }
+
+      const pricePromises = candidates.map(item => fetchCandidatePrice(item, workerUrl));
+      const rawResults = await Promise.all(pricePromises);
+      const evaluatedResults = rawResults.filter(Boolean);
+
+      if (evaluatedResults.length === 0) {
+        return {
+          marketName: market.name,
+          durationMs: performance.now() - mStart,
+          winner: null,
+          error: 'Não foi possível extrair preços'
+        };
+      }
+
+      evaluatedResults.sort((a, b) => {
+        if (b.matchPercent !== a.matchPercent) return b.matchPercent - a.matchPercent;
+        return a.price - b.price;
+      });
+
+      return {
+        marketName: market.name,
+        durationMs: performance.now() - mStart,
+        winner: evaluatedResults[0]
+      };
+    }
+
+    // BOTÃO PRINCIPAL: DISPARO DA BUSCA EM PARALELO EM TODOS OS MERCADOS
+    processBtn.addEventListener('click', async () => {
+      const product = inputProduct.value.trim();
+      const brand = inputBrand.value.trim();
+      const type = inputType.value.trim();
+      const quantity = inputQuantity.value.trim();
+      const workerUrl = proxyInput.value.trim().replace(/\/$/, '');
+
+      const activeMarkets = marketsConfig.filter(m => m.active && m.url);
+
+      if (!product && !brand && !type) return alert('Por favor, preencha ao menos o campo Produto.');
+      if (!workerUrl) return alert('Configure a URL do Cloudflare Worker no topo.');
+      if (activeMarkets.length === 0) return alert('Ative ao menos um mercado com sitemap válido.');
+
+      loader.classList.remove('hidden');
+      resultBox.classList.add('hidden');
+      logOutput.textContent = '';
+      marketResultsTableBody.innerHTML = '';
+
+      function log(msg) { logOutput.textContent += `[${new Date().toLocaleTimeString()}] ${msg}\n`; }
+
+      const totalGlobalStart = performance.now();
+      log(`Iniciando busca paralela nos ${activeMarkets.length} mercados ativos...`);
+      loaderText.textContent = `Consultando ${activeMarkets.length} mercados simultaneamente via Promise.all...`;
+
+      // DISPARO PARALELO VIA PROMISE.ALL PARA TODOS OS MERCADOS
+      const marketTasks = activeMarkets.map(m => processSingleMarket(m, product, brand, type, quantity, workerUrl));
+      const marketResults = await Promise.all(marketTasks);
+
+      const totalGlobalDuration = ((performance.now() - totalGlobalStart) / 1000).toFixed(2);
+
+      totalBenchmarkTime.textContent = `${totalGlobalDuration}s`;
+      totalMarketsCount.textContent = `${activeMarkets.length} Mercados Pesquisados`;
+
+      let cheapestOverall = null;
+
+      marketResults.forEach(res => {
+        log(`Mercado "${res.marketName}" concluído em ${(res.durationMs / 1000).toFixed(2)}s.`);
+        
+        if (res.winner) {
+          if (!cheapestOverall || res.winner.price < cheapestOverall.winner.price) {
+            cheapestOverall = res;
+          }
+        }
+      });
+
+      marketResults.forEach(res => {
+        const tr = document.createElement('tr');
+        const isOverallWinner = cheapestOverall && cheapestOverall.marketName === res.marketName;
+        
+        tr.className = isOverallWinner ? 'bg-emerald-100 font-bold border-b' : 'hover:bg-slate-50 border-b';
+        tr.innerHTML = `
+          <td class="p-3">
+            <span class="font-bold text-slate-800">${escapeHTML(res.marketName)}</span>
+            ${isOverallWinner ? '<span class="ml-2 bg-emerald-600 text-white text-[9px] px-1.5 py-0.5 rounded font-bold">MENOR PREÇO GERAL</span>' : ''}
+          </td>
+          <td class="p-3 break-all">
+            ${res.winner ? `<a href="${res.winner.url}" target="_blank" class="text-blue-600 hover:underline">${res.winner.url}</a>` : `<span class="text-slate-400">${res.error || 'N/D'}</span>`}
+          </td>
+          <td class="p-3 text-center">
+            ${res.winner ? `<span class="px-2 py-0.5 rounded bg-blue-100 text-blue-800 font-bold">${res.winner.matchPercent}%</span>` : '-'}
+          </td>
+          <td class="p-3 text-right">
+            ${res.winner ? `<span class="text-sm font-extrabold text-emerald-700">R$ ${res.winner.price.toFixed(2).replace('.', ',')}</span>` : '-'}
+          </td>
+          <td class="p-3 text-center text-slate-500 font-mono">
+            ${(res.durationMs / 1000).toFixed(2)}s
+          </td>
+        `;
+        marketResultsTableBody.appendChild(tr);
+      });
+
+      log(`Benchmark concluído em ${totalGlobalDuration} segundos!`);
+
+      loader.classList.add('hidden');
+      resultBox.classList.remove('hidden');
+    });
+
+    function escapeHTML(str) {
+      return String(str || '').replace(/[&<>"']/g, match => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[match]));
+    }
+  </script>
 </body>
 </html>
